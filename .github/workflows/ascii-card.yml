@@ -1,0 +1,97 @@
+name: ASCII profile card
+
+# Regenerates the neofetch-style ASCII card shown at the top of README.md.
+#
+#   photo    (default) — renders assets/avatar.png locally, so the card uses the
+#                        portrait regardless of what the account avatar is set to
+#   gh-ascii           — pulls the card straight from crafter-station/gh-ascii
+#                        (https://gh.crafter.run), which renders the *account
+#                        avatar*. Pick this once the portrait is the avatar.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - assets/avatar.png
+      - card.json
+      - tools/render_ascii_card.py
+      - .github/workflows/ascii-card.yml
+  schedule:
+    # 21:17 UTC = 06:17 KST — daily, so the stats block stays current
+    - cron: "17 21 * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Where the artwork comes from
+        type: choice
+        options: [photo, gh-ascii]
+        default: photo
+      cols:
+        description: ASCII columns (40-200)
+        default: "120"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ascii-card
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow
+        run: pip install --disable-pip-version-check --quiet pillow
+
+      - name: Render from the committed portrait
+        # `inputs` is empty on push/schedule, so this is the default path.
+        if: inputs.source != 'gh-ascii'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for theme in dark light; do
+            python tools/render_ascii_card.py \
+              --image assets/avatar.png \
+              --handle "${{ github.repository_owner }}" \
+              --profile-json card.json \
+              --cols "${{ inputs.cols || '120' }}" \
+              --theme "$theme" \
+              --out "assets/ascii-$theme.svg"
+          done
+
+      - name: Render via crafter-station/gh-ascii
+        if: inputs.source == 'gh-ascii'
+        run: |
+          for theme in dark light; do
+            curl -fsSL --retry 3 --retry-delay 2 \
+              "https://gh.crafter.run/${{ github.repository_owner }}?theme=$theme&cols=${{ inputs.cols || '120' }}" \
+              -o "assets/ascii-$theme.svg"
+          done
+
+      - name: Sanity-check the SVGs
+        run: |
+          for theme in dark light; do
+            f="assets/ascii-$theme.svg"
+            [ -s "$f" ] || { echo "::error::$f is empty"; exit 1; }
+            head -c 200 "$f" | grep -q "<svg" || { echo "::error::$f is not an SVG"; exit 1; }
+            python -c "import sys,xml.etree.ElementTree as E; E.parse(sys.argv[1])" "$f"
+          done
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/ascii-dark.svg assets/ascii-light.svg
+          if git diff --staged --quiet; then
+            echo "Card unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: refresh ASCII profile card"
+          git push

@@ -1,0 +1,10 @@
+{
+  "_comment": "Static rows for the ASCII card's info panel. Anything left empty falls back to the live GitHub API value (or is dropped entirely). Edit and push — the workflow regenerates both SVGs.",
+
+  "name": "Minjun Park · 박민준",
+  "focus": "Founder-minded Builder",
+  "location": "Seoul, Korea",
+  "stack": "Python · FastAPI · React · Supabase",
+  "web": "portfolio-self-rho-27.vercel.app",
+  "email": "powerla.personal@gmail.com"
+}
