@@ -47,6 +47,15 @@
 `assets/avatar.png` 한 장을 **neofetch 스타일 ASCII 카드 SVG**로 변환해서 커밋합니다.
 매일 06:17 (KST) 자동 실행되므로 repos · stars · commits 같은 숫자가 알아서 최신으로 유지됩니다.
 
+카드가 하는 일 세 가지:
+
+- **배경 매팅** — 테두리에서 안쪽으로 region-growing 해서 스튜디오 배경만 도려냅니다.
+  덕분에 인물이 빈 공간 위에 떠 있는 실루엣으로 읽힙니다.
+- **자기 타이핑 리빌** — SMIL `clipPath` 애니메이션으로 한 줄씩 그려지고,
+  커서 블록이 줄을 따라 움직입니다. 약 4.2초 후 완성된 상태로 고정됩니다.
+- **폰트 독립 정렬** — 모든 행에 `textLength` + `lengthAdjust`를 걸어서
+  보는 사람의 기본 monospace 폰트가 무엇이든 격자가 어긋나지 않습니다.
+
 | | |
 |---|---|
 | **워크플로우** | [`.github/workflows/ascii-card.yml`](.github/workflows/ascii-card.yml) |
@@ -72,6 +81,11 @@ python tools/render_ascii_card.py \
   --profile-json card.json --theme dark --out assets/ascii-dark.svg
 ```
 
-`--cols` (40–200) 로 해상도를, `--contrast` · `--unsharp` 로 얼굴 디테일을 조절할 수 있습니다.
+| 플래그 | 기본값 | 하는 일 |
+|---|---|---|
+| `--cols` | `120` | ASCII 가로 해상도 (40–200) |
+| `--cutout` | `16` | 배경 매팅 허용치. `0` 이면 배경을 남깁니다 |
+| `--animate` | `4.2` | 타이핑 리빌 길이(초). `0` 이면 정적 카드 |
+| `--contrast` · `--unsharp` | `7.0` · `1.8` | 명암 S-커브 / 얼굴 디테일 강조 |
 
 </details>
