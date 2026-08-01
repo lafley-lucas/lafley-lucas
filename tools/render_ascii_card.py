@@ -173,7 +173,9 @@ def fetch_profile(handle: str, token: str | None) -> dict:
         lang = repo.get("language")
         if lang:
             langs[lang] = langs.get(lang, 0) + 1
-    top = ", ".join(k for k, _ in sorted(langs.items(), key=lambda kv: -kv[1])[:4]) or "—"
+    # Name breaks count ties so the row does not flip-flop with repo push order,
+    # which would otherwise produce a fresh commit on every scheduled run.
+    top = ", ".join(k for k, _ in sorted(langs.items(), key=lambda kv: (-kv[1], kv[0]))[:4]) or "—"
 
     commits = _try(
         lambda: _get(f"{API}/search/commits?q=author:{handle}&per_page=1", token).get("total_count", 0),
